@@ -1,3 +1,8 @@
+# Required by @react-native-firebase: Firebase's iOS SDK ships as
+# frameworks only (firebase-ios-sdk v9+), and its pods declare
+# static-only modules that must not be re-exposed as dynamic frameworks.
+$RNFirebaseAsStaticFramework = true
+
 # Resolve react_native_pods.rb with node to allow for hoisting
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
@@ -8,11 +13,9 @@ require Pod::Executable.execute_command('node', ['-p',
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
-linkage = ENV['USE_FRAMEWORKS']
-if linkage != nil
-  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
-  use_frameworks! :linkage => linkage.to_sym
-end
+linkage = ENV['USE_FRAMEWORKS'] || 'static'
+Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
+use_frameworks! :linkage => linkage.to_sym
 
 target 'CardSecureViewApp' do
   config = use_native_modules!
@@ -30,5 +33,28 @@ target 'CardSecureViewApp' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    # react-native-firebase pods (built as framework modules under
+    # use_frameworks!) include React-Core headers that aren't modular in
+    # this RN version. CLANG_WARN_NON_MODULAR_INCLUDE_IN_FRAMEWORK_MODULE
+    # only changes the warning level; the setting that actually allows this
+    # (Apple's documented escape hatch for exactly this case) is
+    # CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES, and it has to
+    # be set on the host app target too, since the module gets rebuilt
+    # under whichever target first imports it.
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |build_configuration|
+        build_configuration.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+      end
+    end
+
+    installer.aggregate_targets.each do |aggregate_target|
+      aggregate_target.user_project.native_targets.each do |target|
+        target.build_configurations.each do |build_configuration|
+          build_configuration.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+        end
+      end
+      aggregate_target.user_project.save
+    end
   end
 end
