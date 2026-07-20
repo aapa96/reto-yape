@@ -1,19 +1,20 @@
 import {useEffect} from 'react';
 import {AccessibilityInfo} from 'react-native';
 
-import NativeCardSecureView from '../../../../../specs/NativeCardSecureView';
+import {
+  isSecureViewAvailable,
+  onValidationError,
+} from '@aranzatech/react-native-card-secure-view';
 
 export function useSecureViewEvents() {
   useEffect(() => {
-    if (!NativeCardSecureView) {
+    if (!isSecureViewAvailable()) {
       return;
     }
 
-    const validationSubscription = NativeCardSecureView.onValidationError(
-      ({message}) => {
-        AccessibilityInfo.announceForAccessibility(message);
-      },
-    );
+    const validationSubscription = onValidationError(({message}) => {
+      AccessibilityInfo.announceForAccessibility(message);
+    });
 
     return () => {
       validationSubscription.remove();

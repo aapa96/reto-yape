@@ -1,21 +1,17 @@
-import NativeCardSecureView from '../../../../../specs/NativeCardSecureView';
+import {
+  createSecureToken,
+  openSecureView,
+} from '@aranzatech/react-native-card-secure-view';
+
 import type {SecureViewGateway} from '../../application/ports/SecureViewGateway';
-
-function getNativeModule() {
-  if (!NativeCardSecureView) {
-    throw new Error('NativeCardSecureView no está disponible en esta plataforma.');
-  }
-
-  return NativeCardSecureView;
-}
 
 export class NativeCardSecureViewGateway implements SecureViewGateway {
   createSecureToken(cardId: string): Promise<string> {
-    return getNativeModule().createSecureToken(cardId);
+    return createSecureToken(cardId);
   }
 
   openSecureView(cardId: string, secureToken: string): Promise<void> {
-    return getNativeModule().openSecureView(cardId, secureToken);
+    return openSecureView(cardId, secureToken);
   }
 }
 
